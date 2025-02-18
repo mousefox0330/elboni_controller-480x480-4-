@@ -33,6 +33,8 @@
 #define RS485_PORT_NUM      (CONFIG_RS485_PORT_NUM)
 #define RS485_BAUD_RATE     (CONFIG_RS485_BAUD_RATE)
 #define RS485_TASK_STACK_SIZE    (CONFIG_RS485_STACK_SIZE)
+// Timeout threshold for UART = number of symbols (~10 tics) with unchanged state on receive pin
+#define RS485_READ_TOUT          (3) // 3.5T * 8 = 28 ticks, TOUT=3 -> ~24..33 ticks
 
 #define RS485_DEBUG 1
 
@@ -54,13 +56,14 @@ void elboni_RS485_Recv_task(void *arg)
 
         if (len) {
             data[len] = '\0';
-            ESP_LOGI(TAG, "Recv str: %s", (char *) data);
+            ESP_LOGI(TAG, "Recv str: %s %d", (char *) data, len);
         }
 #endif
+		//vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
 
-void elboni_RS485_send_data(char * data, int len)
+void elboni_RS485_send_data(uint8_t * data, int len)
 {
 	uart_write_bytes(RS485_PORT_NUM, (const char *) data, len);
 }
@@ -75,17 +78,21 @@ void elboni_RS485_UART_init()
         .parity    = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+		.rx_flow_ctrl_thresh = 122,
         .source_clk = UART_SCLK_DEFAULT,
     };
-    int intr_alloc_flags = 0;
 
 #if CONFIG_UART_ISR_IN_IRAM
     intr_alloc_flags = ESP_INTR_FLAG_IRAM;
 #endif
 
-    ESP_ERROR_CHECK(uart_driver_install(RS485_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
+    ESP_ERROR_CHECK(uart_driver_install(RS485_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(RS485_PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(RS485_PORT_NUM, RS485_TXD, RS485_RXD, RS485_RTS, RS485_CTS));
+	// Set RS485 half duplex mode
+    ESP_ERROR_CHECK(uart_set_mode(RS485_PORT_NUM, UART_MODE_RS485_HALF_DUPLEX));
+	    // Set read timeout of UART TOUT feature
+    ESP_ERROR_CHECK(uart_set_rx_timeout(RS485_PORT_NUM, RS485_READ_TOUT));
 }
 
 void elboni_RS485_init(void)
