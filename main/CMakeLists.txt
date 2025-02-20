@@ -4,8 +4,8 @@ idf_component_register(
     SRC_DIRS
         ${LV_DEMO_DIR}
         "."
-		"port"
+		"middleware"
     INCLUDE_DIRS
         ${LV_DEMO_DIR}
         "."
-		"port")
+		"middleware")

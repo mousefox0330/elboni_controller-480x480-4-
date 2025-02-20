@@ -42,7 +42,7 @@ menu "Elboni Configuration"
         help
             Defines stack size for RS485 echo example. Insufficient stack size can cause crash.
 
-    config CAN_TX_GPIO_NUM
+    config CAN_TX
         int "CAN TX GPIO number"
         default 21 if IDF_TARGET_ESP32
         default 6
@@ -50,7 +50,7 @@ menu "Elboni Configuration"
             This option selects the GPIO pin used for the TX signal. Connect the
             TX signal to your transceiver.
 
-    config CAN_RX_GPIO_NUM
+    config CAN_RX
         int "CAN RX GPIO number"
         default 22 if IDF_TARGET_ESP32
         default 0
