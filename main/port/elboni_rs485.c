@@ -59,7 +59,7 @@ void elboni_RS485_Recv_task(void *arg)
             ESP_LOGI(TAG, "Recv str: %s %d", (char *) data, len);
         }
 #endif
-		//vTaskDelay(pdMS_TO_TICKS(10000));
+		vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
 
@@ -93,6 +93,7 @@ void elboni_RS485_UART_init()
     ESP_ERROR_CHECK(uart_set_mode(RS485_PORT_NUM, UART_MODE_RS485_HALF_DUPLEX));
 	    // Set read timeout of UART TOUT feature
     ESP_ERROR_CHECK(uart_set_rx_timeout(RS485_PORT_NUM, RS485_READ_TOUT));
+	ESP_LOGI(TAG, "RS485 Driver initialize");
 }
 
 void elboni_RS485_init(void)
