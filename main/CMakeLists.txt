@@ -5,7 +5,13 @@ idf_component_register(
         ${LV_DEMO_DIR}
         "."
 		"middleware"
+		"gui"
+		"protocol"
+		"modules"
     INCLUDE_DIRS
         ${LV_DEMO_DIR}
         "."
-		"middleware")
+		"middleware"
+		"gui"
+		"protocol"
+		"modules")

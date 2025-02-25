@@ -11,6 +11,7 @@
 #define MAIN_CAN_DEBUG   1
 
 static const char *TAG = "MAIN";
+extern int elboni_rtc_init(void);
 
 void app_main(void)
 {
@@ -36,6 +37,7 @@ void app_main(void)
 	
 	elboni_RS485_init();
 	elboni_can_init();
+	elboni_rtc_init();
 	
 	while (1) {
 #if MAIN_RS485_DEBUG

@@ -1,16 +1,5 @@
 /*****************************************************************************
- * | File         :   can.c
- * | Author       :   Waveshare team
- * | Function     :   CAN driver code for CAN communication
- * | Info         :
- * |                 This file implements basic CAN communication functions 
- * |                 using the ESP-IDF TWAI driver. It includes initialization, 
- * |                 alert handling, and message transmission/reception.
- * ----------------
- * | This version :   V1.0
- * | Date         :   2024-11-28
- * | Info         :   Basic version, includes functions to initialize, 
- * |                 read alerts, and transmit/receive CAN messages.
+ * elboni_can.c
  *
  ******************************************************************************/
 #include <stdio.h>
