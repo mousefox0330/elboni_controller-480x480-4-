@@ -3,22 +3,31 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_err.h"
 #include "elboni_rs485.h"
 #include "driver/twai.h"   // TWAI (CAN) driver
 #include "elboni_can.h"
+#include "elboni_iic.h"
+#include "elboni_rtc.h"
+#include "esp_io_expander_tca9554.h"
+
 
 #define MAIN_RS485_DEBUG 1
 #define MAIN_CAN_DEBUG   1
 
 static const char *TAG = "MAIN";
-extern int elboni_rtc_init(void);
+
+#if 0 //conflict with LCD R3 G5
+	#define BSP_IO_EXPANDER_I2C_ADDRESS     (ESP_IO_EXPANDER_I2C_TCA9554_ADDRESS_000)
+	static esp_io_expander_handle_t io_expander = NULL; // IO expander tca9554 handle
+#endif
 
 void app_main(void)
 {
 #if MAIN_RS485_DEBUG
 	static char test[8]="012345";
 #endif
-	
+
 #if MAIN_RS485_DEBUG
 	twai_message_t message;
     message.identifier = 0x123;     // CAN ID
@@ -37,7 +46,13 @@ void app_main(void)
 	
 	elboni_RS485_init();
 	elboni_can_init();
-	elboni_rtc_init();
+	elboni_i2c_0_master_init();
+	elboni_rtc_init(0);
+
+#if 0	//conflict with LCD R3 G5
+	elboni_i2c_1_master_init();
+	ESP_ERROR_CHECK(esp_io_expander_new_i2c_tca9554(1, BSP_IO_EXPANDER_I2C_ADDRESS, &io_expander));
+#endif
 	
 	while (1) {
 #if MAIN_RS485_DEBUG

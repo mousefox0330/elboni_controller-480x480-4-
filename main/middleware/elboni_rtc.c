@@ -3,9 +3,17 @@
     As well as reading and writing to the register of the sensor connected through I2C and alarm interrupt.
 */
 #include "PCF85063A.h"
+#include "elboni_rtc.h"
 
 #define RTC_DEBUG 1
-static const char *TAG = "RTC";
+#define TAG "RTC"
+
+#if RS485_DEBUG
+	#define ELBONI_DBG_PRINT_RTC(...) ESP_LOGI(__VA_ARGS__)
+#else
+	#define ELBONI_DBG_PRINT_RTC(...)
+#endif
+
 
 static datetime_t Set_Time = {
     .year = 2024,
@@ -14,7 +22,8 @@ static datetime_t Set_Time = {
     .dotw = 5,
     .hour = 9,
     .min = 0,
-    .sec = 0};
+    .sec = 0
+};
 
 static datetime_t Set_Alarm_Time = {
     .year = 2024,
@@ -23,23 +32,23 @@ static datetime_t Set_Alarm_Time = {
     .dotw = 5,
     .hour = 9,
     .min = 0,
-    .sec = 2};
+    .sec = 2
+};
 
-char datetime_str[256];
-char ip[20];
-
+static char datetime_str[256];
 // External interrupt handler function
-int Alarm_flag = 0;
+static int Alarm_flag = 0;
+
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
     Alarm_flag = 1;
 }
 
-
-int elboni_rtc_init(void)
+int elboni_rtc_init(int iic_num)
 {
     datetime_t Now_time;
+	
     //Initialize PCF85063A
-    PCF85063A_Init();
+    PCF85063A_Init(0);
     //set time
     PCF85063A_Set_All(Set_Time);
     //set alarm
@@ -49,7 +58,7 @@ int elboni_rtc_init(void)
 		//Start alarm interrupt
 		PCF85063A_Enable_Alarm();
 		//Initialize the ESP32 interrupt input heel callback function
-		DEV_GPIO_INT(6, gpio_isr_handler);
+		DEV_GPIO_INT(CONFIG_RTC_ALARM_PIN, gpio_isr_handler);
 	}
 
 #if RTC_DEBUG

@@ -6,8 +6,6 @@
 #ifndef __CAN_H
 #define __CAN_H
 
-#include "driver/twai.h"   // TWAI (CAN) driver
-
 // Define the GPIO pins used for CAN communication
 //#define TX_GPIO_NUM GPIO_NUM_6 // Transmit GPIO number for CAN
 //#define RX_GPIO_NUM GPIO_NUM_0 // Receive GPIO number for CAN

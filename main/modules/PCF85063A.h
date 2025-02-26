@@ -27,24 +27,6 @@
 #define UWORD   uint16_t
 #define UDOUBLE uint32_t
 
-
-/**
- * I2C config
- **/
-#define I2C_MASTER_SCL_IO           CONFIG_I2C_RTC_SCL      /*!< GPIO number used for I2C master clock */
-#define I2C_MASTER_SDA_IO           CONFIG_I2C_RTC_SDA      /*!< GPIO number used for I2C master data  */
-#define I2C_RTC_NUM              	0                          /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#define I2C_MASTER_FREQ_HZ          400000                     /*!< I2C master clock frequency */
-#define I2C_MASTER_TX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
-#define I2C_MASTER_RX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
-#define I2C_MASTER_TIMEOUT_MS       1000
-#define WRITE_BIT I2C_MASTER_WRITE  /*!< I2C master write */
-#define READ_BIT I2C_MASTER_READ    /*!< I2C master read */
-#define ACK_CHECK_EN 0x1            /*!< I2C master will check ack from slave*/
-#define ACK_CHECK_DIS 0x0           /*!< I2C master will not check ack from slave */
-#define ACK_VAL 0x0                 /*!< I2C ack value */
-#define NACK_VAL 0x1                /*!< I2C nack value */
-
 //PCF85063A_ADDRESS
 #define PCF85063A_ADDRESS   (0x51)
 //
@@ -114,7 +96,7 @@ typedef struct {
 
 void DEV_GPIO_INT(int32_t Pin, gpio_isr_t isr_handler);
 
-void PCF85063A_Init(void);
+void PCF85063A_Init(int I2C_num);
 void PCF85063A_Reset(void);
 
 void PCF85063A_Set_Time(datetime_t time);
@@ -123,7 +105,7 @@ void PCF85063A_Set_All(datetime_t time);
 
 void PCF85063A_Read_now(datetime_t *time);
 
-
+void PCF85063A_set_IIC_port(int i2c_num);
 void PCF85063A_Enable_Alarm(void);
 uint8_t PCF85063A_Get_Alarm_Flag();
 void PCF85063A_Set_Alarm(datetime_t time);

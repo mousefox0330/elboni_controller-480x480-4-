@@ -9,12 +9,18 @@
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 // Include necessary driver headers
+#include "driver/twai.h"   // TWAI (CAN) driver
 #include "elboni_can.h"  // Include header file for CAN driver functions
 #include "esp_err.h"
 #include "esp_log.h"
 
 #define TAG "TWAI" // Log tag for the CAN example (for logging)
 #define CAN_DEBUG 1
+#if CAN_DEBUG
+	#define ELBONI_DBG_PRINT_CAN(...) ESP_LOGI(__VA_ARGS__)
+#else
+	#define ELBONI_DBG_PRINT_CAN(...)
+#endif
 
 //static twai_message_t message_save[8];
 /**
@@ -38,22 +44,22 @@ esp_err_t elboni_can_init(void)
     // Install TWAI driver
     if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK)
     {
-        ESP_LOGI(TAG, "Driver installed"); // Log driver installation success
+        ELBONI_DBG_PRINT_CAN(TAG, "Driver installed"); // Log driver installation success
     }
     else
     {
-        ESP_LOGI(TAG, "Failed to install driver"); // Log driver installation failure
+        ELBONI_DBG_PRINT_CAN(TAG, "Failed to install driver"); // Log driver installation failure
         return ESP_FAIL;
     }
 
     // Start TWAI driver
     if (twai_start() == ESP_OK)
     {
-        ESP_LOGI(TAG, "Driver started"); // Log driver start success
+        ELBONI_DBG_PRINT_CAN(TAG, "Driver started"); // Log driver start success
     }
     else
     {
-        ESP_LOGI(TAG, "Failed to start driver"); // Log driver start failure
+        ELBONI_DBG_PRINT_CAN(TAG, "Failed to start driver"); // Log driver start failure
         return ESP_FAIL;
     }
 
@@ -63,16 +69,18 @@ esp_err_t elboni_can_init(void)
                                 TWAI_ALERT_ERR_PASS | TWAI_ALERT_BUS_ERROR;
     if (twai_reconfigure_alerts(alerts_to_enable, NULL) == ESP_OK)
     {
-        ESP_LOGI(TAG, "CAN Alerts reconfigured"); // Log alert reconfiguration success
+        ELBONI_DBG_PRINT_CAN(TAG, "CAN Alerts reconfigured"); // Log alert reconfiguration success
     }
     else
     {
-        ESP_LOGI(TAG, "Failed to reconfigure alerts"); // Log alert reconfiguration failure
+        ELBONI_DBG_PRINT_CAN(TAG, "Failed to reconfigure alerts"); // Log alert reconfiguration failure
         return ESP_FAIL;
     }
 
-	ESP_LOGI(TAG, "CAN stack size %d", CAN_TASK_STACK_SIZE);
+#if CAN_DEBUG
+	ELBONI_DBG_PRINT_CAN(TAG, "CAN stack size %d", CAN_TASK_STACK_SIZE);
 	xTaskCreate(elboni_can_receive_task, "twai_echo_task", CAN_TASK_STACK_SIZE, NULL, 10, NULL);
+#endif
 
     return ESP_OK;
 }
@@ -93,33 +101,33 @@ uint32_t elboni_can_read_alerts()
 
     if (alerts_triggered & TWAI_ALERT_ERR_PASS)
     {
-        ESP_LOGI(TAG, "Alert: TWAI controller is in error passive state.");
+        ELBONI_DBG_PRINT_CAN(TAG, "Alert: TWAI controller is in error passive state.");
         return TWAI_ALERT_ERR_PASS;
     }
 
     if (alerts_triggered & TWAI_ALERT_BUS_ERROR)
     {
-        ESP_LOGI(TAG, "Alert: Bus error occurred.");
-        ESP_LOGI(TAG, "Bus error count: %" PRIu32, twaistatus.bus_error_count);
+        ELBONI_DBG_PRINT_CAN(TAG, "Alert: Bus error occurred.");
+        ELBONI_DBG_PRINT_CAN(TAG, "Bus error count: %" PRIu32, twaistatus.bus_error_count);
         return TWAI_ALERT_BUS_ERROR;
     }
 
     if (alerts_triggered & TWAI_ALERT_TX_FAILED)
     {
-        ESP_LOGI(TAG, "Alert: Transmission failed.");
-        ESP_LOGI(TAG, "TX buffered: %" PRIu32, twaistatus.msgs_to_tx);
+        ELBONI_DBG_PRINT_CAN(TAG, "Alert: Transmission failed.");
+        ELBONI_DBG_PRINT_CAN(TAG, "TX buffered: %" PRIu32, twaistatus.msgs_to_tx);
         return TWAI_ALERT_TX_FAILED;
     }
 
     if (alerts_triggered & TWAI_ALERT_TX_SUCCESS)
     {
-        //ESP_LOGI(TAG, "Alert: Transmission successful.");
+        //ELBONI_DBG_PRINT_CAN(TAG, "Alert: Transmission successful.");
         return TWAI_ALERT_TX_SUCCESS;
     }
 
     if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL)
     {
-        ESP_LOGI(TAG, "Alert: RX queue full, frame lost.");
+        ELBONI_DBG_PRINT_CAN(TAG, "Alert: RX queue full, frame lost.");
         return TWAI_ALERT_RX_QUEUE_FULL;
     }
 
@@ -142,11 +150,11 @@ void elboni_can_write_Byte(twai_message_t message)
 {
     if (twai_transmit(&message, portMAX_DELAY) == ESP_OK)
     {
-        //ESP_LOGI(TAG,"Message queued for transmission\n"); // Log success
+        //ELBONI_DBG_PRINT_CAN(TAG,"Message queued for transmission"); // Log success
     }
     else
     {
-        ESP_LOGI(TAG,"Failed to queue message for transmission\n"); // Log failure
+        ELBONI_DBG_PRINT_CAN(TAG,"Failed to queue message for transmission"); // Log failure
     }
 }
 
@@ -166,23 +174,24 @@ twai_message_t elboni_can_read_Byte(void)
     {
         if (message.extd)
         {
-            ESP_LOGI(TAG, "Message is in Extended Format");
+            ELBONI_DBG_PRINT_CAN(TAG, "Message is in Extended Format");
         }
         else
         {
-            ESP_LOGI(TAG, "Message is in Standard Format");
+            ELBONI_DBG_PRINT_CAN(TAG, "Message is in Standard Format");
         }
-
-        ESP_LOGI(TAG,"ID: %lx", message.identifier);
-		ESP_LOGI(TAG,"Byte:");
+	#if CAN_DEBUG
+        ELBONI_DBG_PRINT_CAN(TAG,"ID: %lx", message.identifier);
+		ELBONI_DBG_PRINT_CAN(TAG,"Byte:");
         if (!message.rtr)
         {
             for (int i = 0; i < message.data_length_code; i++)
             {
-                ESP_LOGI(TAG," %d = %02x,", i, message.data[i]);
+                ELBONI_DBG_PRINT_CAN(TAG," %d = %02x,", i, message.data[i]);
             }
             printf("\n");
         }
+	#endif
     }
     return message;
 }

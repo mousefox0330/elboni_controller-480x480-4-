@@ -13,34 +13,15 @@
 #include "esp_log.h"
 #include "elboni_rs485.h"
 
-/**
- * This is an example which echos any data it receives on configured UART back to the sender,
- * with hardware flow control turned off. It does not use UART driver event queue.
- *
- * - Port: configured UART
- * - Receive (Rx) buffer: on
- * - Transmit (Tx) buffer: off
- * - Flow control: off
- * - Event queue: off
- * - Pin assignment: see defines below (See Kconfig)
- */
-
-#define RS485_TXD (CONFIG_RS485_TXD)
-#define RS485_RXD (CONFIG_RS485_RXD)
-#define RS485_RTS (UART_PIN_NO_CHANGE)
-#define RS485_CTS (UART_PIN_NO_CHANGE)
-
-#define RS485_PORT_NUM      (CONFIG_RS485_PORT_NUM)
-#define RS485_BAUD_RATE     (CONFIG_RS485_BAUD_RATE)
-#define RS485_TASK_STACK_SIZE    (CONFIG_RS485_STACK_SIZE)
-// Timeout threshold for UART = number of symbols (~10 tics) with unchanged state on receive pin
-#define RS485_READ_TOUT          (3) // 3.5T * 8 = 28 ticks, TOUT=3 -> ~24..33 ticks
-
+#define TAG "RS485"
 #define RS485_DEBUG 1
 
-static const char *TAG = "RS485";
+#if RS485_DEBUG
+	#define ELBONI_DBG_PRINT_RS485(...) ESP_LOGI(__VA_ARGS__)
+#else
+	#define ELBONI_DBG_PRINT_RS485(...)
+#endif
 
-#define BUF_SIZE (1024)
 
 void elboni_RS485_Recv_task(void *arg)
 {
@@ -56,7 +37,7 @@ void elboni_RS485_Recv_task(void *arg)
 
         if (len) {
             data[len] = '\0';
-            ESP_LOGI(TAG, "Recv str: %s %d", (char *) data, len);
+            ELBONI_DBG_PRINT_RS485(TAG, "Recv str: %s %d", (char *) data, len);
         }
 #endif
 		vTaskDelay(pdMS_TO_TICKS(200));
@@ -93,12 +74,14 @@ void elboni_RS485_UART_init()
     ESP_ERROR_CHECK(uart_set_mode(RS485_PORT_NUM, UART_MODE_RS485_HALF_DUPLEX));
 	    // Set read timeout of UART TOUT feature
     ESP_ERROR_CHECK(uart_set_rx_timeout(RS485_PORT_NUM, RS485_READ_TOUT));
-	ESP_LOGI(TAG, "RS485 Driver initialize");
+	ELBONI_DBG_PRINT_RS485(TAG, "RS485 Driver initialize");
 }
 
 void elboni_RS485_init(void)
 {
 	elboni_RS485_UART_init();
+#if RS485_DEBUG
 	xTaskCreate(elboni_RS485_Recv_task, "uart_echo_task", RS485_TASK_STACK_SIZE, NULL, 10, NULL);
+#endif
 }
 

@@ -8,10 +8,12 @@ idf_component_register(
 		"gui"
 		"protocol"
 		"modules"
+		"bus"
     INCLUDE_DIRS
         ${LV_DEMO_DIR}
         "."
 		"middleware"
 		"gui"
 		"protocol"
-		"modules")
+		"modules"
+		"bus")

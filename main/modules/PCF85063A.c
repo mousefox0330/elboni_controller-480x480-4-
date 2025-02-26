@@ -10,53 +10,14 @@
 *
 ******************************************************************************/
 #include "PCF85063A.h"
+#include "elboni_iic.h"
 
 static uint8_t decToBcd(int val);
 static int bcdToDec(uint8_t val);
 
+static int I2C_RTC_NUM;
+
 const unsigned char MonthStr[12][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov","Dec"};
-
-/**
- * I2C
- **/
-esp_err_t i2c_master_init(void)
-{
-    int i2c_master_port = I2C_RTC_NUM;
-
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
-    };
-
-    i2c_param_config(i2c_master_port, &conf);
-
-    return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-}
-
-esp_err_t  DEV_I2C_Write_Byte(uint8_t addr, uint8_t reg, uint8_t Value)
-{
-    uint8_t write_buf[2] = {reg, Value};
-    return i2c_master_write_to_device(I2C_RTC_NUM, addr, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-}
-
-esp_err_t  DEV_I2C_Write_nByte(uint8_t addr, uint8_t *pData, uint32_t Len)
-{
-    return i2c_master_write_to_device(I2C_RTC_NUM, addr, pData, Len, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-}
-
-esp_err_t DEV_I2C_Read_Byte(uint8_t addr, uint8_t reg, uint8_t *data)
-{
-    return i2c_master_write_read_device(I2C_RTC_NUM, addr, &reg, 1, data, 1, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-}
-
-esp_err_t DEV_I2C_Read_nByte(uint8_t addr, uint8_t reg, uint8_t *pData, uint32_t Len)
-{
-   return i2c_master_write_read_device(I2C_RTC_NUM, addr, &reg, 1, pData, Len, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-}
 
 void DEV_GPIO_INT(int32_t Pin, gpio_isr_t isr_handler)
 {
@@ -86,21 +47,23 @@ parameter:
             
 Info:Initiate Normal Mode, RTC Run, NO reset, No correction , 24hr format, Internal load capacitane 12.5pf
 ******************************************************************************/
-void PCF85063A_Init()
+void PCF85063A_Init(int I2C_num)
 {
 	uint8_t Value = RTC_CTRL_1_DEFAULT|RTC_CTRL_1_CAP_SEL;
-	ESP_ERROR_CHECK(i2c_master_init());
-	ESP_ERROR_CHECK(DEV_I2C_Write_Byte(PCF85063A_ADDRESS, RTC_CTRL_1_ADDR, Value));
+	//ESP_ERROR_CHECK(i2c_master_init());
+	ESP_ERROR_CHECK(DEV_I2C_Write_Byte(I2C_RTC_NUM, PCF85063A_ADDRESS, RTC_CTRL_1_ADDR, Value));
 	// PCF85063A_Enable_Alarm();
 	// uint8_t Value = 0;
 	// ESP_ERROR_CHECK(DEV_I2C_Read_Byte(PCF85063A_ADDRESS,RTC_CTRL_1_ADDR,&Value));
 	// printf("Value = 0x%x",Value);
+	I2C_RTC_NUM = I2C_num;
+	return;
 }
 
 void PCF85063A_Reset()
 {
 	uint8_t Value = RTC_CTRL_1_DEFAULT|RTC_CTRL_1_CAP_SEL|RTC_CTRL_1_SR;
-	ESP_ERROR_CHECK(DEV_I2C_Write_Byte(PCF85063A_ADDRESS, RTC_CTRL_1_ADDR, Value));
+	ESP_ERROR_CHECK(DEV_I2C_Write_Byte(I2C_RTC_NUM, PCF85063A_ADDRESS, RTC_CTRL_1_ADDR, Value));
 }
 
 void PCF85063A_Set_Time(datetime_t time)
@@ -110,7 +73,7 @@ void PCF85063A_Set_Time(datetime_t time)
 					  decToBcd(time.sec),
 					  decToBcd(time.min),
 					  decToBcd(time.hour)};
-	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(PCF85063A_ADDRESS, buf, 4));
+	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(I2C_RTC_NUM, PCF85063A_ADDRESS, buf, 4));
 }
 
 void PCF85063A_Set_Date(datetime_t date)
@@ -120,7 +83,7 @@ void PCF85063A_Set_Date(datetime_t date)
 					  decToBcd(date.dotw),
 					  decToBcd(date.month),
 					  decToBcd(date.year - YEAR_OFFSET)};
-	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(PCF85063A_ADDRESS, buf, 5));
+	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(I2C_RTC_NUM, PCF85063A_ADDRESS, buf, 5));
 }
 
 void PCF85063A_Set_All(datetime_t time)
@@ -133,13 +96,13 @@ void PCF85063A_Set_All(datetime_t time)
 					  decToBcd(time.dotw),
 					  decToBcd(time.month),
 					  decToBcd(time.year - YEAR_OFFSET)};
-	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(PCF85063A_ADDRESS, buf, 8));
+	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(I2C_RTC_NUM, PCF85063A_ADDRESS, buf, 8));
 }
 
 void PCF85063A_Read_now(datetime_t *time)
 {
 	uint8_t bufss[7] = {0};
-	ESP_ERROR_CHECK(DEV_I2C_Read_nByte(PCF85063A_ADDRESS, RTC_SECOND_ADDR, bufss, 7));
+	ESP_ERROR_CHECK(DEV_I2C_Read_nByte(I2C_RTC_NUM, PCF85063A_ADDRESS, RTC_SECOND_ADDR, bufss, 7));
 	time->sec = bcdToDec(bufss[0] & 0x7F);
 	time->min = bcdToDec(bufss[1] & 0x7F);
 	time->hour = bcdToDec(bufss[2] & 0x3F);
@@ -153,7 +116,7 @@ void PCF85063A_Enable_Alarm()
 {
 	uint8_t Value = RTC_CTRL_2_DEFAULT | RTC_CTRL_2_AIE;
 	Value &= ~RTC_CTRL_2_AF;
-	ESP_ERROR_CHECK(DEV_I2C_Write_Byte(PCF85063A_ADDRESS,RTC_CTRL_2_ADDR,Value));
+	ESP_ERROR_CHECK(DEV_I2C_Write_Byte(I2C_RTC_NUM, PCF85063A_ADDRESS,RTC_CTRL_2_ADDR,Value));
 }
 
 /******************************************************************************
@@ -164,7 +127,7 @@ Info:
 uint8_t PCF85063A_Get_Alarm_Flag()
 {
 	uint8_t Value = 0;
-	ESP_ERROR_CHECK(DEV_I2C_Read_Byte(PCF85063A_ADDRESS,RTC_CTRL_2_ADDR,&Value));
+	ESP_ERROR_CHECK(DEV_I2C_Read_Byte(I2C_RTC_NUM, PCF85063A_ADDRESS,RTC_CTRL_2_ADDR,&Value));
 	//printf("Value = 0x%x",Value);
 	Value &= RTC_CTRL_2_AF | RTC_CTRL_2_AIE;
 	return Value;
@@ -183,13 +146,13 @@ void PCF85063A_Set_Alarm(datetime_t time)
 		RTC_ALARM, 	//disalbe day
 		RTC_ALARM	//disalbe weekday
 	};
-	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(PCF85063A_ADDRESS, buf, 6));
+	ESP_ERROR_CHECK(DEV_I2C_Write_nByte(I2C_RTC_NUM, PCF85063A_ADDRESS, buf, 6));
 }
 
 void PCF85063A_Read_Alarm(datetime_t *time)
 {
 	uint8_t bufss[6] = {0};
-	ESP_ERROR_CHECK(DEV_I2C_Read_nByte(PCF85063A_ADDRESS, RTC_SECOND_ALARM, bufss, 7));
+	ESP_ERROR_CHECK(DEV_I2C_Read_nByte(I2C_RTC_NUM, PCF85063A_ADDRESS, RTC_SECOND_ALARM, bufss, 7));
 	time->sec = bcdToDec(bufss[0] & 0x7F);
 	time->min = bcdToDec(bufss[1] & 0x7F);
 	time->hour = bcdToDec(bufss[2] & 0x3F);
