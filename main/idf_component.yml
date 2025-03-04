@@ -1,8 +1,11 @@
 ## IDF Component Manager Manifest File
 dependencies:
+  esp_io_expander_tca9554:
+    public: true
+    version: ^1
   ## Required IDF version
   idf:
-    version: '>=4.1.0'
+    version: '>=5.1.0'
   # # Put list of dependencies here
   # # For components maintained by Espressif:
   # component: "~1.0.0"
@@ -14,4 +17,15 @@ dependencies:
   #   # `public` flag doesn't have an effect dependencies of the `main` component.
   #   # All dependencies of `main` are public by default.
   #   public: true
-  lvgl/lvgl: ^8
+  lvgl/lvgl:
+    public: true
+    version: ^8
+
+  esp_lcd_panel_io_additions:
+    public: true
+    version: ^1
+  
+  esp_lcd_st7701:
+    version: "*"
+
+  esp_lcd_touch_gt911: "^1"

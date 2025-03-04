@@ -5,7 +5,7 @@
 #include "PCF85063A.h"
 #include "elboni_rtc.h"
 
-#define RTC_DEBUG 1
+#define RTC_DEBUG 0
 #define TAG "RTC"
 
 #if RS485_DEBUG
@@ -81,4 +81,5 @@ int elboni_rtc_init(int iic_num)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 #endif
+	return 0;
 }

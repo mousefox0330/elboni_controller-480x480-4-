@@ -11,6 +11,7 @@
 #include "driver/i2c.h"
 #include "esp_console.h"
 #include "driver/gpio.h"
+#include "sdkconfig.h"
 #include "elboni_iic.h"
 
 #define TAG "IIC"
@@ -27,7 +28,7 @@
 esp_err_t elboni_i2c_0_master_init(void)
 {
 	esp_err_t ret = ESP_OK;
-    int i2c_master_port = I2C_RTC_NUM_0;
+    int i2c_master_port = I2C_NUM_0;
 
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
@@ -55,7 +56,7 @@ esp_err_t elboni_i2c_0_master_init(void)
 esp_err_t elboni_i2c_1_master_init(void)
 {
 	esp_err_t ret = ESP_OK;
-    int i2c_master_port = I2C_RTC_NUM_1;
+    int i2c_master_port = I2C_NUM_1;
 
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
