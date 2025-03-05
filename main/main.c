@@ -12,6 +12,9 @@
 #include "elboni_rtc.h"
 #include "esp_io_expander_tca9554.h"
 #include "elboni_sd.h"
+#include "modules.h"
+#include "app_weather.h"
+#include "wifi.h"
 
 #define MAIN_RS485_DEBUG 0
 #define MAIN_CAN_DEBUG   0
@@ -63,6 +66,14 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(200));
 	
 	elboni_sdcard_vfat_init();
+	elboni_nvram_init();
+	elboni_spiffs_mount();
+	app_weather_start();
+    app_network_start();
+	
+	
+	
+	
 #if MAIN_SD_DEBUG
 	elboni_vfat_test();
 #endif

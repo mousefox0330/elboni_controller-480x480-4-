@@ -231,7 +231,7 @@ esp_err_t app_weather_request(location_num_t location)
 
 esp_err_t app_weather_start(void)
 {
-    CHECK(QWEATHER_REQUEST_KEY_LEN == strlen(CONFIG_QWEATHER_REQUEST_KEY),
+    CHECK(QWEATHER_REQUEST_KEY_LEN == strlen(_KEY_VALUE_),
           "Invalid QWeather request key.\n"
           "Please register at https://console.qweather.com/#/apps",
           ESP_ERR_INVALID_ARG);

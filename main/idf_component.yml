@@ -28,4 +28,8 @@ dependencies:
   esp_lcd_st7701:
     version: "*"
 
-  esp_lcd_touch_gt911: "^1"
+  esp_lcd_touch_gt911:
+    version: "^1"
+    
+  zlib:
+    version: "^1"

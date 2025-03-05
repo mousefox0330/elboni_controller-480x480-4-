@@ -13,7 +13,7 @@
 #define SPIFFS_PARTITION_LABEL "storage"
 #define SPIFFS_MAX_FILES 5
 
-void elboni_nvram_init(void) 
+void elboni_nvram_init(void)
 {
 	esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
