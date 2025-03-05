@@ -117,7 +117,7 @@ menu "Elboni Configuration"
 
     choice SDMMC_SPEED_MODE
         prompt "SD/MMC speed mode"
-        default SDMMC_SPEED_DS
+        default SDMMC_SPEED_HS
 
         config SDMMC_SPEED_HS
             bool "High Speed"
