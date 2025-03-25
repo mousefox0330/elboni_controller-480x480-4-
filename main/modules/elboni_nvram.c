@@ -9,6 +9,14 @@
 #include "elboni_system_setting.h"
 
 #define TAG "NVRAM"
+#define NVRAM_DEBUG 1
+#if NVRAM_DEBUG
+	#define ELBONI_DBG_PRINT_NVRAM(...) ESP_LOGI(__VA_ARGS__)
+#else
+	#define ELBONI_DBG_PRINT_NVRAM(...)
+#endif
+
+
 #define SPIFFS_MOUNT_POINT "/spiffs"
 #define SPIFFS_PARTITION_LABEL "storage"
 #define SPIFFS_MAX_FILES 5
@@ -52,7 +60,7 @@ esp_err_t elboni_spiffs_mount(void)
     if (ret_val != ESP_OK) {
         ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret_val));
     } else {
-        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+        ELBONI_DBG_PRINT_NVRAM(TAG, "Partition size: total: %d, used: %d", total, used);
     }
 
     return ret_val;

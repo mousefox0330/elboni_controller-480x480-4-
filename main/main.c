@@ -15,17 +15,30 @@
 #include "modules.h"
 #include "app_weather.h"
 #include "wifi.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_lcd_panel_io.h"
+#include "esp_lcd_panel_io_additions.h"
+#include "esp_lcd_touch_gt911.h"
+#include "esp_lcd_st7701.h"
 
 #define MAIN_RS485_DEBUG 0
 #define MAIN_CAN_DEBUG   0
-#define MAIN_SD_DEBUG    1
+#define MAIN_SD_DEBUG    0
 
 #define EX_SDCARD_POWER     CONFIG_SDMMC_EXTERN_POWER_PIN
+#define EX_PANDER_PIN_NUM_5 5 
+#define EX_PANDER_PIN_NUM_0 0
+#define EX_PANDER_PIN_NUM_2 2
+#define EX_PIN_NUM_TOUCH_INT (GPIO_NUM_16) // -1 if not used
 
 #define TAG "MAIN"
 
 #define BSP_IO_EXPANDER_I2C_ADDRESS (ESP_IO_EXPANDER_I2C_TCA9554_ADDRESS_000)
 static esp_io_expander_handle_t io_expander = NULL; // IO expander tca9554 handle
+static esp_lcd_touch_handle_t tp_handle = NULL;
+static esp_lcd_panel_handle_t lcd_handle = NULL;
+
+
 
 void app_main(void)
 {
@@ -60,8 +73,8 @@ void app_main(void)
 
 	esp_io_expander_new_i2c_tca9554(I2C_NUM_0, BSP_IO_EXPANDER_I2C_ADDRESS, &io_expander);
 	//Enable SD interface power
-	esp_io_expander_set_dir(io_expander, EX_SDCARD_POWER, IO_EXPANDER_OUTPUT);
-    esp_io_expander_set_level(io_expander, EX_SDCARD_POWER, true);
+	esp_io_expander_set_dir(io_expander, IO_EXPANDER_PIN_NUM_7, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_7, true);
 	ESP_LOGI(TAG, "Enable extern power contorl: set tca9554 pin 7 Output&High");
     vTaskDelay(pdMS_TO_TICKS(200));
 	
@@ -70,9 +83,24 @@ void app_main(void)
 	elboni_spiffs_mount();
 	app_weather_start();
     app_network_start();
+	//elboni_ble_gatt_client();
+	
+	/* set LCD power reset */
+	esp_io_expander_set_dir(io_expander, IO_EXPANDER_PIN_NUM_5 | IO_EXPANDER_PIN_NUM_0 | IO_EXPANDER_PIN_NUM_2, IO_EXPANDER_OUTPUT);
+    esp_rom_gpio_pad_select_gpio(EX_PIN_NUM_TOUCH_INT);
+    gpio_set_direction(EX_PIN_NUM_TOUCH_INT, GPIO_MODE_OUTPUT);
+    gpio_set_level(EX_PIN_NUM_TOUCH_INT, 0);
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_5, 1);
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_0, 0);
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_2, 0);
+    vTaskDelay(pdMS_TO_TICKS(200));
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_5, 0);
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_0, 1);
+    esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_2, 1);
 	
 	
-	
+	lcd_handle = elboni_st7701_lcd_init();
+	tp_handle = elboni_gt911_touch_init(I2C_NUM_0);
 	
 #if MAIN_SD_DEBUG
 	elboni_vfat_test();

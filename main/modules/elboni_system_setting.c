@@ -14,7 +14,13 @@
 #include "nvs.h"
 #include "elboni_system_setting.h"
 
-#define TAG "settings"
+#define SETTING_DEBUG 1
+#define TAG "SETTING"
+#if SETTING_DEBUG
+	#define ELBONI_DBG_PRINT_SETTINGC(...) ESP_LOGI(__VA_ARGS__)
+#else
+	#define ELBONI_DBG_PRINT_SETTING(...)
+#endif
 
 #define NAME_SPACE "sys_param"
 #define KEY "param"
@@ -67,7 +73,7 @@ static esp_err_t settings_check(sys_param_t *param)
             ((0 == param->password_len) || (param->password_len > 64)) || \
             (param->ssid_len != strlen(param->ssid)) || \
             (param->password_len != strlen(param->password))) {
-        ESP_LOGI(TAG, "ssid | password incorrect, [%d.%d, %d.%d]", \
+        ELBONI_DBG_PRINT_SETTINGC(TAG, "ssid | password incorrect, [%d.%d, %d.%d]", \
                  param->ssid_len, strlen(param->ssid), param->password_len, strlen(param->password));
         goto reset;
     }
@@ -112,12 +118,12 @@ err:
 
 esp_err_t settings_write_parameter_to_nvs(void)
 {
-    ESP_LOGI(TAG, "Saving settings");
+    ELBONI_DBG_PRINT_SETTINGC(TAG, "Saving settings");
     settings_check(&g_sys_param);
     nvs_handle_t my_handle = {0};
     esp_err_t err = nvs_open(NAME_SPACE, NVS_READWRITE, &my_handle);
     if (err != ESP_OK) {
-        ESP_LOGI(TAG, "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+        ELBONI_DBG_PRINT_SETTINGC(TAG, "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
     } else {
         err = nvs_set_blob(my_handle, KEY, &g_sys_param, sizeof(sys_param_t));
         err |= nvs_commit(my_handle);

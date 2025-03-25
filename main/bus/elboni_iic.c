@@ -36,7 +36,7 @@ esp_err_t elboni_i2c_0_master_init(void)
         .scl_io_num = I2C_MASTER_SCL_0_IO,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+        .master.clk_speed = 400*1000,
     };
 
     ret = i2c_param_config(i2c_master_port, &conf);
