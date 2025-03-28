@@ -22,6 +22,8 @@
 #include "esp_lcd_st7701.h"
 #include "demos/lv_demos.h"
 #include "lvgl_port.h"
+//#include "lv_schedule_basic.h"
+#include "lv_example_pub.h"
 
 #define MAIN_RS485_DEBUG 0
 #define MAIN_CAN_DEBUG   0
@@ -100,7 +102,14 @@ void app_main(void)
 	ESP_ERROR_CHECK(lvgl_port_init(lcd_handle, tp_handle));
 	elboni_panel_event_callbacks(lcd_handle);
 	lvgl_port_lock(0);
-	lv_demo_widgets();
+
+	//install lv resource
+    lv_style_pre_init();
+	//create boot animate
+    lv_create_home(&boot_Layer);
+	//register standby display
+    lv_create_clock(&clock_screen_layer);
+	//lv_demo_widgets();
 	lvgl_port_unlock();
 	
 	app_sntp_init();

@@ -6,6 +6,8 @@ idf_component_register(
         "."
 		"middleware"
 		"gui"
+		"gui/assert"
+		"gui/font"
 		"protocol"
 		"modules"
 		"bus"
@@ -14,8 +16,12 @@ idf_component_register(
         "."
 		"middleware"
 		"gui"
+		"gui/assert"
+		"gui/font"
 		"protocol"
 		"modules"
 		"bus")
-		
+
+add_compile_definitions(LV_LVGL_H_INCLUDE_SIMPLE)
+
 spiffs_create_partition_image(storage ../spiffs FLASH_IN_PROJECT)

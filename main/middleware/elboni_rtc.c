@@ -2,8 +2,9 @@
     RTC simple example, how to initialize I2C, configure PCF85063A
     As well as reading and writing to the register of the sensor connected through I2C and alarm interrupt.
 */
-#include "PCF85063A.h"
 #include "elboni_rtc.h"
+#include <time.h>
+#include <sys/time.h>
 
 #define RTC_DEBUG 0
 #define TAG "RTC"
@@ -16,26 +17,28 @@
 
 
 static datetime_t Set_Time = {
-    .year = 2024,
-    .month = 02,
-    .day = 02,
-    .dotw = 5,
+    .year = 2025,
+    .month = 03,
+    .day = 30,
+    .dotw = 7,
     .hour = 9,
     .min = 0,
     .sec = 0
 };
 
 static datetime_t Set_Alarm_Time = {
-    .year = 2024,
-    .month = 02,
-    .day = 02,
-    .dotw = 5,
+    .year = 2025,
+    .month = 03,
+    .day = 30,
+    .dotw = 7,
     .hour = 9,
     .min = 0,
-    .sec = 2
+    .sec = 10
 };
 
+#if RTC_DEBUG
 static char datetime_str[256];
+#endif
 // External interrupt handler function
 static int Alarm_flag = 0;
 
@@ -45,8 +48,10 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
 
 int elboni_rtc_init(int iic_num)
 {
+#if RTC_DEBUG
     datetime_t Now_time;
-	
+#endif
+
     //Initialize PCF85063A
     PCF85063A_Init(0);
     //set time
@@ -61,6 +66,8 @@ int elboni_rtc_init(int iic_num)
 		DEV_GPIO_INT(CONFIG_RTC_ALARM_PIN, gpio_isr_handler);
 	}
 
+	//set system time
+	//elboni_setting_system_time(Set_Time);
 #if RTC_DEBUG
     while (1)
     {
@@ -82,4 +89,34 @@ int elboni_rtc_init(int iic_num)
     }
 #endif
 	return 0;
+}
+
+void elboni_setting_system_time(void)
+{
+	datetime_t Now_time;
+
+	PCF85063A_Read_now(&Now_time);
+	
+	struct tm tm_time = {
+        .tm_year = Now_time.year - 1900, // tm_year from 1900
+        .tm_mon = Now_time.month - 1,   // tm_mon start form 0
+        .tm_mday = Now_time.day,
+        .tm_hour = Now_time.hour,
+        .tm_min = Now_time.min,
+        .tm_sec = Now_time.sec
+    };
+
+    time_t time_sec = mktime(&tm_time);
+
+    if (time_sec == -1) {
+        printf("Error: Failed to convert datetime_t to time_t\n");
+        return;
+    }
+
+    struct timeval tv = {
+        .tv_sec = time_sec,
+        .tv_usec = 0
+    };
+
+	settimeofday(&tv, NULL);
 }
