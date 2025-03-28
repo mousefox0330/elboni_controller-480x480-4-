@@ -28,7 +28,7 @@ RTC_DATA_ATTR static int boot_count = 0;
 static void obtain_time(void);
 static void initialize_sntp(void);
 
-#ifdef CONFIG_SNTP_TIME_SYNC_METHOD_CUSTOM
+#ifdef SNTP_TIME_SYNC_METHOD_CUSTOM
 void sntp_sync_time(struct timeval *tv)
 {
     settimeofday(tv, NULL);
@@ -62,7 +62,7 @@ void app_sntp_init(void)
         // update 'now' variable with current time
         time(&now);
     }
-#ifdef CONFIG_SNTP_TIME_SYNC_METHOD_SMOOTH
+#ifdef SNTP_TIME_SYNC_METHOD_SMOOTH
     else {
         // add 500 ms error to the current system time.
         // Only to demonstrate a work of adjusting method!
@@ -127,7 +127,7 @@ static void initialize_sntp(void)
     esp_sntp_setservername(1, "time.asia.apple.com");
     esp_sntp_setservername(2, "pool.ntp.org");
     esp_sntp_set_time_sync_notification_cb(time_sync_notification_cb);
-#ifdef CONFIG_SNTP_TIME_SYNC_METHOD_SMOOTH
+#ifdef SNTP_TIME_SYNC_METHOD_SMOOTH
     esp_sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
 #endif
     esp_sntp_init();

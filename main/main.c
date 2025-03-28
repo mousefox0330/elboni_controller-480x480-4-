@@ -20,15 +20,13 @@
 #include "esp_lcd_panel_io_additions.h"
 #include "esp_lcd_touch_gt911.h"
 #include "esp_lcd_st7701.h"
+#include "demos/lv_demos.h"
+#include "lvgl_port.h"
 
 #define MAIN_RS485_DEBUG 0
 #define MAIN_CAN_DEBUG   0
 #define MAIN_SD_DEBUG    0
 
-#define EX_SDCARD_POWER     CONFIG_SDMMC_EXTERN_POWER_PIN
-#define EX_PANDER_PIN_NUM_5 5 
-#define EX_PANDER_PIN_NUM_0 0
-#define EX_PANDER_PIN_NUM_2 2
 #define EX_PIN_NUM_TOUCH_INT (GPIO_NUM_16) // -1 if not used
 
 #define TAG "MAIN"
@@ -37,8 +35,6 @@
 static esp_io_expander_handle_t io_expander = NULL; // IO expander tca9554 handle
 static esp_lcd_touch_handle_t tp_handle = NULL;
 static esp_lcd_panel_handle_t lcd_handle = NULL;
-
-
 
 void app_main(void)
 {
@@ -78,11 +74,11 @@ void app_main(void)
 	ESP_LOGI(TAG, "Enable extern power contorl: set tca9554 pin 7 Output&High");
     vTaskDelay(pdMS_TO_TICKS(200));
 	
-	elboni_sdcard_vfat_init();
+	//elboni_sdcard_vfat_init();
 	elboni_nvram_init();
 	elboni_spiffs_mount();
-	app_weather_start();
     app_network_start();
+	app_weather_start();
 	//elboni_ble_gatt_client();
 	
 	/* set LCD power reset */
@@ -98,10 +94,16 @@ void app_main(void)
     esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_0, 1);
     esp_io_expander_set_level(io_expander, IO_EXPANDER_PIN_NUM_2, 1);
 	
-	
 	lcd_handle = elboni_st7701_lcd_init();
 	tp_handle = elboni_gt911_touch_init(I2C_NUM_0);
 	
+	ESP_ERROR_CHECK(lvgl_port_init(lcd_handle, tp_handle));
+	elboni_panel_event_callbacks(lcd_handle);
+	lvgl_port_lock(0);
+	lv_demo_widgets();
+	lvgl_port_unlock();
+	
+	app_sntp_init();
 #if MAIN_SD_DEBUG
 	elboni_vfat_test();
 #endif

@@ -55,12 +55,12 @@
 #define PORT_LCD_RGB_BUFFER_NUMS   (3)
 #define TAG "ST7701"
 
-#if 0
+extern bool lvgl_port_notify_rgb_vsync(void);
+
 IRAM_ATTR static bool rgb_lcd_on_vsync_event(esp_lcd_panel_handle_t panel, const esp_lcd_rgb_panel_event_data_t *edata, void *user_ctx)
 {
     return lvgl_port_notify_rgb_vsync();
 }
-#endif
 
 static const st7701_lcd_init_cmd_t lcd_init_cmds[] = {
     //  {cmd, { data }, data_size, delay_ms}
@@ -190,9 +190,13 @@ esp_lcd_panel_handle_t elboni_st7701_lcd_init(void)
     esp_lcd_panel_disp_on_off(lcd_handle, true);
 
     //ESP_ERROR_CHECK(lvgl_port_init(lcd_handle, tp_handle));
+	
+	return lcd_handle;
+}
 
-#if 0
-    esp_lcd_rgb_panel_event_callbacks_t cbs = {
+void elboni_panel_event_callbacks(esp_lcd_panel_handle_t lcd_handle)
+{
+	esp_lcd_rgb_panel_event_callbacks_t cbs = {
 #if EXAMPLE_RGB_BOUNCE_BUFFER_SIZE > 0
         .on_bounce_frame_finish = rgb_lcd_on_vsync_event,
 #else
@@ -200,7 +204,4 @@ esp_lcd_panel_handle_t elboni_st7701_lcd_init(void)
 #endif
     };
     esp_lcd_rgb_panel_register_event_callbacks(lcd_handle, &cbs, NULL);
-#endif
-	
-	return lcd_handle;
 }
