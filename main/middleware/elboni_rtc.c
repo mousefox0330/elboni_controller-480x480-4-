@@ -67,7 +67,7 @@ int elboni_rtc_init(int iic_num)
 	}
 
 	//set system time
-	//elboni_setting_system_time(Set_Time);
+	elboni_setting_system_time();
 #if RTC_DEBUG
     while (1)
     {

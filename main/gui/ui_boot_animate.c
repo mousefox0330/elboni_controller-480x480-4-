@@ -40,17 +40,10 @@ static time_out_count time_20ms;
 
 static void anim_timer_handle(lv_obj_t *parent)
 {
-    static int32_t count = -90;
+    static int32_t count = 0;
     lv_obj_t *page = parent;
-    static lv_obj_t *img_logo = NULL;
+    //static lv_obj_t *img_logo = NULL;
     static lv_obj_t *img_text = NULL;
-
-    if (-90 == count) {
-        LV_IMG_DECLARE(esp_logo);
-        img_logo = lv_img_create(page);
-        lv_img_set_src(img_logo, &esp_logo);
-        lv_obj_center(img_logo);
-    }
 
     if (count < 90) {
         lv_coord_t arc_start = count > 0 ? (1 - cosf(count / 180.0f * PI)) * 270 : 0;
@@ -70,14 +63,15 @@ static void anim_timer_handle(lv_obj_t *parent)
         LV_IMG_DECLARE(Philips_logo);
         img_text = lv_img_create(page);
         lv_img_set_src(img_text, &Philips_logo);
+		lv_obj_align(img_text, LV_ALIGN_CENTER, 0, 0);
         lv_obj_set_style_img_opa(img_text, 0, 0);
     }
 
     if ((count >= 100) && (count <= 180)) {
-        lv_coord_t offset = (sinf((count - 140) * 2.25f / 90.0f) + 1) * 15.0f;
-        lv_obj_align(img_logo, LV_ALIGN_CENTER, 0, -offset);
-        lv_obj_align(img_text, LV_ALIGN_CENTER, 0, 2 * offset);
-        lv_obj_set_style_img_opa(img_text, offset / 30.0f * 255, 0);
+        lv_coord_t offset = (sinf((count - 140 ) * 2.25f / 90.0f) + 1) * 15.0f;
+        //lv_obj_align(img_logo, LV_ALIGN_CENTER, 0, -offset);
+        //lv_obj_align(img_text, LV_ALIGN_CENTER, 0, 2 * offset);
+        lv_obj_set_style_img_opa(img_text, (offset) / 30.0f * 255, 0);
     }
 	
 	count +=2;
@@ -110,9 +104,10 @@ void boot_animate_start(lv_obj_t *parent)
         LV_COLOR_MAKE(60, 211, 60),
         LV_COLOR_MAKE(60, 60, 218),
     };
+	
     for (size_t i = 0; i < sizeof(arc) / sizeof(arc[0]); i++) {
         arc[i] = lv_arc_create(parent);
-        lv_obj_set_size(arc[i], 220 - 30 * i, 220 - 30 * i);
+        lv_obj_set_size(arc[i], 220 - 60 * i, 220 - 60 * i);
         lv_arc_set_bg_angles(arc[i], 120 * i, 0 + 120 * i);
         lv_arc_set_value(arc[i], 0);
         lv_obj_remove_style(arc[i], NULL, LV_PART_KNOB);
@@ -132,6 +127,11 @@ static bool boot_layer_enter_cb(void *create_layer)
         layer->lv_obj_layer = lv_obj_create(lv_scr_act());
         lv_obj_remove_style_all(layer->lv_obj_layer);
         lv_obj_set_size(layer->lv_obj_layer, LV_HOR_RES, LV_VER_RES);
+		
+		lv_obj_t *background = lv_btn_create(layer->lv_obj_layer);
+        lv_obj_set_size(background, LV_HOR_RES, LV_VER_RES);
+        lv_obj_set_style_radius(background, 0, 0);
+        lv_obj_set_style_bg_color(background, lv_color_hex(COLOUR_BLACK), 0);
 
         boot_animate_start(layer->lv_obj_layer);
         set_time_out(&time_20ms, 20);
