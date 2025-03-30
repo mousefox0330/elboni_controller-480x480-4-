@@ -21,7 +21,7 @@
 #include "wifi.h"
 #include "app_sntp.h"
 #include "app_weather.h"
-#include "elboni_system_setting.h"
+#include "settings.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
 

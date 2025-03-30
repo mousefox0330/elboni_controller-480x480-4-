@@ -19,6 +19,8 @@
 #define PI  (3.14159f)
 #endif
 
+#define TAG "Boot_animate"
+
 static bool boot_layer_enter_cb(void *create_layer);
 static bool boot_layer_exit_cb(void *create_layer);
 static void boot_layer_timer_cb(lv_timer_t *tmr);
@@ -65,9 +67,9 @@ static void anim_timer_handle(lv_obj_t *parent)
             lv_obj_del(arc[i]);
         }
 
-        LV_IMG_DECLARE(esp_text);
+        LV_IMG_DECLARE(Philips_logo);
         img_text = lv_img_create(page);
-        lv_img_set_src(img_text, &esp_text);
+        lv_img_set_src(img_text, &Philips_logo);
         lv_obj_set_style_img_opa(img_text, 0, 0);
     }
 
@@ -77,7 +79,9 @@ static void anim_timer_handle(lv_obj_t *parent)
         lv_obj_align(img_text, LV_ALIGN_CENTER, 0, 2 * offset);
         lv_obj_set_style_img_opa(img_text, offset / 30.0f * 255, 0);
     }
-
+	
+	count +=2;
+#if 0
     if ((count += 2) >= 300) {
         if (sys_set->need_hint) {
             lv_func_goto_layer(&user_guide_layer);
@@ -89,6 +93,7 @@ static void anim_timer_handle(lv_obj_t *parent)
             }
         }
     }
+#endif
 }
 
 void boot_animate_start(lv_obj_t *parent)
@@ -96,10 +101,14 @@ void boot_animate_start(lv_obj_t *parent)
     lv_obj_clear_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(parent, 0, LV_PART_MAIN);
 
+	ESP_LOGI(TAG, "Boot animate start");
     const lv_color_t arc_color[] = {
-        LV_COLOR_MAKE(237, 228, 239),
-        LV_COLOR_MAKE(211, 211, 211),
-        LV_COLOR_MAKE(239, 218, 218),
+        //LV_COLOR_MAKE(237, 228, 239),
+        //LV_COLOR_MAKE(211, 211, 211),
+        //LV_COLOR_MAKE(239, 218, 218),
+		LV_COLOR_MAKE(237, 60, 60),
+        LV_COLOR_MAKE(60, 211, 60),
+        LV_COLOR_MAKE(60, 60, 218),
     };
     for (size_t i = 0; i < sizeof(arc) / sizeof(arc[0]); i++) {
         arc[i] = lv_arc_create(parent);

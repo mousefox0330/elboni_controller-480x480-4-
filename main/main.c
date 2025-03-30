@@ -101,6 +101,9 @@ void app_main(void)
 	
 	ESP_ERROR_CHECK(lvgl_port_init(lcd_handle, tp_handle));
 	elboni_panel_event_callbacks(lcd_handle);
+	
+	settings_read_parameter_from_nvs();
+	
 	lvgl_port_lock(0);
 
 	//install lv resource

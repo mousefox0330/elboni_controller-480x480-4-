@@ -47,7 +47,6 @@ LV_IMG_DECLARE(watch_min);
 LV_IMG_DECLARE(watch_sec);
 
 LV_IMG_DECLARE(mic_logo);
-
 LV_IMG_DECLARE(icon_160_light);
 LV_IMG_DECLARE(icon_160_home);
 LV_IMG_DECLARE(icon_160_theam);

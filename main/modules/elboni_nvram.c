@@ -6,7 +6,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_spiffs.h"
-#include "elboni_system_setting.h"
+#include "settings.h"
 
 #define TAG "NVRAM"
 #define NVRAM_DEBUG 1
