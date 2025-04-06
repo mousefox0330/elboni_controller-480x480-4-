@@ -107,7 +107,7 @@ void app_main(void)
 	lvgl_port_lock(0);
 
 	//install lv resource
-    //lv_style_pre_init();
+    lv_style_pre_init();
 	//create boot animate
     lv_create_home(&boot_Layer);
 	//register standby display

@@ -1,6 +1,11 @@
 #include "esp_lcd_touch_gt911.h"
 #include "esp_lcd_st7701.h"
 
+#define VERSION_MAJOR 0
+#define VERSION_MINOR 3
+#define VERSION_PATCH 2
+#define VERSION_INFO ""
+
 void elboni_nvram_init(void);
 esp_err_t bsp_spiffs_unmount(void);
 esp_err_t elboni_spiffs_mount(void);

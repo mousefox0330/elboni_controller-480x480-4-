@@ -41,8 +41,7 @@ static void btn_exit_clock_event_cb(lv_event_t *e)
 
     if (code == LV_EVENT_SHORT_CLICKED) {
         lv_obj_clear_flag(central, LV_OBJ_FLAG_HIDDEN);
-        lv_func_goto_layer(&boot_Layer);
-		//lv_func_goto_layer(&main_Layer);
+		lv_func_goto_layer(&main_Layer);
     }
 }
 

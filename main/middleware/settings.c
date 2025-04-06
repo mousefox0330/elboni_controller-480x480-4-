@@ -24,7 +24,7 @@ static sys_param_t g_sys_param = {0};
 static const sys_param_t g_default_sys_param = {
     .need_hint = true,
     .lang = LANG_EN,
-    .standby_time = 0, //15sec
+    .standby_time = 1, //15sec
     .brightness = 60,
 };
 

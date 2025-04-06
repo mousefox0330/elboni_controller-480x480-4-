@@ -73,21 +73,10 @@ static void anim_timer_handle(lv_obj_t *parent)
         //lv_obj_align(img_text, LV_ALIGN_CENTER, 0, 2 * offset);
         lv_obj_set_style_img_opa(img_text, (offset) / 30.0f * 255, 0);
     }
-	
-	count +=2;
-#if 0
+
     if ((count += 2) >= 300) {
-        if (sys_set->need_hint) {
-            lv_func_goto_layer(&user_guide_layer);
-        } else {
-            if (sys_set->demo_gui) {
-                lv_func_goto_layer(&main_Layer);
-            } else {
-                lv_func_goto_layer(&sr_layer);
-            }
-        }
+        lv_func_goto_layer(&main_Layer);
     }
-#endif
 }
 
 void boot_animate_start(lv_obj_t *parent)
