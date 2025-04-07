@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 #define DEFAULT_ESP_WIFI_SSID      "wifi_ssid"
+#define DEFAULT_ESP_BLE_ID 		   "ESP_BLE_DEMO"
 #define DEFAULT_ESP_WIFI_PASS      "wifi_passwd"
 
 typedef enum {
@@ -25,6 +26,7 @@ typedef struct {
     uint8_t brightness;     /**< 0-100.*/
 
     char ssid[32];      /**< SSID of target AP. */
+	char ble[32];
     char password[64];  /**< Password of target AP. */
     uint8_t ssid_len;      /**< SSID of target AP. */
     uint8_t password_len;  /**< Password of target AP. */

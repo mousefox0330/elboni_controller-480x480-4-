@@ -79,8 +79,8 @@ static void ctrlBtn_set_event_cb(lv_event_t *e)
             lv_func_goto_layer(&set_layer);
             break;
         case SET_FUNC_BLE:
-		    //set_layer.user_data = SPRITE_SET_PAGE_BLE;
-            //lv_func_goto_layer(&set_layer);
+		    set_layer.user_data = SPRITE_SET_PAGE_BLE;
+            lv_func_goto_layer(&set_layer);
             break;
         case SET_FUNC_SET:
             set_layer.user_data = SPRITE_SET_PAGE_HOME;

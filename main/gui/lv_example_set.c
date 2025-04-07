@@ -14,6 +14,13 @@
 #include "wifi.h"
 #include "settings.h"
 
+#include "esp_bt.h"
+#include "esp_gap_ble_api.h"
+#include "esp_gattc_api.h"
+#include "esp_gatt_defs.h"
+#include "esp_bt_main.h"
+#include "esp_gatt_common_api.h"
+
 #include "lv_example_pub.h"
 #include "lv_example_image.h"
 
@@ -26,6 +33,7 @@ static void set_layer_timer_cb(lv_timer_t *tmr);
 static void lv_create_set_home(lv_obj_t *set_background);
 
 static void lv_create_set_wifi(lv_obj_t *set_background);
+static void lv_create_set_ble(lv_obj_t *set_background);
 static void lv_create_set_voice(lv_obj_t *set_background);
 static void lv_create_set_bright(lv_obj_t *set_background);
 static void lv_create_set_factory_reset(lv_obj_t *set_background);
@@ -51,6 +59,7 @@ static SPRITE_SET_PAGE_LIST sprite_focus_page = SPRITE_SET_PAGE_MAX;
 static time_out_count time_1000ms;
 
 static lv_obj_t *list_wifi = NULL;
+static lv_obj_t *list_ble = NULL;
 static lv_obj_t *label_reboot = NULL;
 static uint8_t reboot_wait_time = 0;
 
@@ -60,6 +69,7 @@ static sprite_create_func_t sprite_create_list[] = {
     {{"Setting",        "设置"}, lv_create_set_home, NULL},
 
     {{"WiFi",           "WiFi"}, lv_create_set_wifi, NULL},
+	{{"BLE",         	"BLE"}, lv_create_set_ble, NULL},
     {{"Sound",          "声音"}, lv_create_set_voice, NULL},
     {{"Display",        "亮度与显示"}, lv_create_set_bright, NULL},
     {{"Factory Reset",  "恢复出厂"}, lv_create_set_factory_reset, NULL},
@@ -126,6 +136,7 @@ static uint8_t sprite_focus_page_goto(uint8_t sprite)
         for (int i = 0; i < SPRITE_SET_PAGE_MAX; i++) {
             if (sprite_create_list[i].sprite_parent) {
                 list_wifi = NULL;
+				list_ble = NULL;
                 label_reboot = NULL;
                 lv_obj_del(sprite_create_list[i].sprite_parent);
                 sprite_create_list[i].sprite_parent = NULL;
@@ -217,6 +228,17 @@ static void wifi_refresh_event_handler(lv_event_t *e)
         ESP_LOGI(TAG, "refresh");
         feed_clock_time();
         send_network_event(NET_EVENT_SCAN);
+    }
+}
+
+static void ble_refresh_event_handler(lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+
+    if (code == LV_EVENT_SHORT_CLICKED) {
+        ESP_LOGI(TAG, "refresh ble");
+        feed_clock_time();
+        elboni_ble_gatt_scan(30);
     }
 }
 
@@ -746,6 +768,146 @@ static void lv_create_set_wifi(lv_obj_t *set_background)
     update_wifi_list(list_wifi);
 }
 
+static void ble_list_event_handler(lv_event_t *e)
+{
+	struct remote_device *ble_dev;
+    lv_event_code_t code = lv_event_get_code(e);
+    int item_select = (int)lv_event_get_user_data(e);
+
+
+    if (code == LV_EVENT_SHORT_CLICKED) {
+        feed_clock_time();
+		ble_dev=elboni_ble_get_scan_result(item_select);
+        ESP_LOGI(TAG, "LV_EVENT_SHORT_CLICKED:%d,%s", item_select, ble_dev->name);
+        elboni_ble_gatt_connect(ble_dev);
+    }
+}
+
+static void update_ble_list(lv_obj_t *parent)
+{
+    lv_obj_t *btn, *label_item;
+	struct remote_device *ble_dev;
+	struct remote_device *ble_dev_0;
+	char address[24];
+    
+	if (NULL == parent) {
+        return;
+    }
+
+	app_ble_lock(0);
+    if (BLE_SCAN_BUSY == elboni_ble_scan_state()) {
+        if (false == lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+            lv_obj_add_flag(parent, LV_OBJ_FLAG_HIDDEN);
+        }
+
+        if (lv_obj_get_child_cnt(parent)) {
+            lv_obj_clean(parent);
+        }
+    } else if ((BLE_SCAN_RENEW == elboni_ble_scan_state()) || (BLE_SCAN_IDLE == elboni_ble_scan_state())) {
+        if (true == lv_obj_has_flag(parent, LV_OBJ_FLAG_HIDDEN)) {
+            lv_obj_clear_flag(parent, LV_OBJ_FLAG_HIDDEN);
+        }
+
+        if (BLE_SCAN_IDLE == elboni_ble_scan_state()) {
+            if (lv_obj_get_child_cnt(parent)) {
+                lv_obj_clean(parent);
+            }
+        }
+
+        //ESP_LOGI(TAG, "update ble list %d", elboni_ble_scan_count());
+		ble_dev_0 = elboni_ble_get_scan_result(0);
+        for (int i = 0; i < elboni_ble_scan_count(); i++) {
+			ble_dev = elboni_ble_get_scan_result(i);
+            if ((0 == strcmp((char *)sys_set->ble, ble_dev->name)) && (i > 0)) {
+                struct remote_device replace_ble;
+                memcpy(&replace_ble, ble_dev_0, sizeof(replace_ble));
+                memcpy(ble_dev_0, ble_dev, sizeof(replace_ble));
+                memcpy(ble_dev, &replace_ble, sizeof(replace_ble));
+                ESP_LOGI(TAG, "replace[%d->0:%s]", i, ble_dev->name);
+            }
+        }
+
+        for (int i = 0; i < elboni_ble_scan_count()+1; i++) {
+            btn = lv_list_add_btn(parent, NULL, NULL);
+            lv_obj_remove_style_all(btn);
+            set_button_list_style(btn);
+            lv_obj_set_size(btn, LV_PCT(95), 60);
+
+            if (i >= elboni_ble_scan_count()) {
+                lv_obj_set_style_border_side(btn, LV_BORDER_SIDE_NONE, 0);
+                continue;
+            }
+            lv_obj_add_event_cb(btn, ble_list_event_handler, LV_EVENT_SHORT_CLICKED, (void *)i);
+
+            label_item = lv_label_create(btn);
+            lv_obj_set_style_text_font(label_item, &SourceHanSansCN_Normal_20, 0);
+
+			ble_dev = elboni_ble_get_scan_result(i);
+			snprintf(address, sizeof(ESP_BD_ADDR_STR), ""ESP_BD_ADDR_STR"", ESP_BD_ADDR_HEX(ble_dev->scan_result.scan_rst.bda));
+            if ((0 == strcmp((char *)sys_set->ble, ble_dev->name)) && (ble_dev->name_len != 0)) {
+
+                char ble_conected[32 + 10];
+                memset(ble_conected, 0, sizeof(ble_conected));
+
+                ble_Connect_Status status = elboni_ble_connect_state();
+                if (BLE_STATUS_CONNECTING == status) {
+                    sprintf(ble_conected, "%s %s", ble_dev->name,
+                            (LANG_CN == sys_set->lang) ? "连接中" : "Connecting");
+                } else if (BLE_STATUS_CONNECTED_FAILED == status) {
+                    sprintf(ble_conected, "%s %s", ble_dev->name,
+                            (LANG_CN == sys_set->lang) ? "未连接" : "Disconnected");
+                } else {
+                    sprintf(ble_conected, "%s %s", ble_dev->name,
+                            (LANG_CN == sys_set->lang) ? "已连接" : "Connected");
+                }
+
+                lv_label_set_text(label_item, ble_conected);
+                lv_obj_set_style_text_color(label_item, lv_color_hex(COLOUR_YELLOW), 0);
+            } else {
+				if(ble_dev->name_len == 0)
+				{
+					lv_label_set_text(label_item, (char *)address);
+				}else{
+					lv_label_set_text(label_item, (char *)ble_dev->name);
+				}
+            }
+            lv_obj_align(label_item, LV_ALIGN_LEFT_MID, 0, 0);
+
+            lv_obj_t *label_enter = lv_label_create(btn);
+            lv_obj_set_style_text_font(label_enter, &lv_font_montserrat_16, 0);
+            lv_label_set_text(label_enter, LV_SYMBOL_RIGHT);
+            lv_obj_align(label_enter, LV_ALIGN_RIGHT_MID, 0, 0);
+        }
+    }
+	app_ble_unlock();
+}
+
+static void lv_create_set_ble(lv_obj_t *set_background)
+{
+    lv_obj_t *label_refresh;
+
+    uint8_t focused = SPRITE_SET_PAGE_BLE;
+    lv_create_set_title(set_background, sprite_create_list[focused].set_list_name[sys_set->lang], focused); /*0-60*/
+
+    lv_obj_t *btn_refresh = lv_btn_create(set_background);
+    lv_obj_align(btn_refresh, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_set_size(btn_refresh, 100, 60);
+    lv_obj_set_style_border_width(btn_refresh, 0, 0);
+    lv_obj_set_style_bg_color(btn_refresh, lv_color_hex(COLOUR_GREY_2F), LV_PART_MAIN);
+    lv_obj_add_event_cb(btn_refresh, ble_refresh_event_handler, LV_EVENT_SHORT_CLICKED, NULL);
+
+    label_refresh = lv_label_create(btn_refresh);
+    lv_obj_remove_style_all(label_refresh);
+    lv_obj_set_style_text_color(label_refresh, lv_color_white(), 0);
+    lv_obj_set_style_text_font(label_refresh, &lv_font_montserrat_16, 0);
+    lv_label_set_text(label_refresh, LV_SYMBOL_REFRESH);
+    lv_obj_center(label_refresh);
+
+	elboni_ble_gatt_scan(30);
+    list_ble = create_button_list_page(set_background);
+    update_ble_list(list_ble);
+}
+
 void create_sound_volume(lv_obj_t *parent)
 {
     static uint32_t active_index_1 = 0;
@@ -1087,6 +1249,7 @@ static bool set_layer_exit_cb(void *create_layer)
 static void set_layer_timer_cb(lv_timer_t *tmr)
 {
     update_wifi_list(list_wifi);
+	update_ble_list(list_ble);
 
     if (is_time_out(&time_1000ms)) {
         update_reboot_step(label_reboot);

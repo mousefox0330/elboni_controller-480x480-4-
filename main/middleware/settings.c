@@ -85,6 +85,7 @@ esp_err_t settings_read_parameter_from_nvs(void)
         memcpy(&g_sys_param, &g_default_sys_param, sizeof(sys_param_t));
         memcpy(&g_sys_param.ssid[0], DEFAULT_ESP_WIFI_SSID, strlen(DEFAULT_ESP_WIFI_SSID));
         memcpy(&g_sys_param.password[0], DEFAULT_ESP_WIFI_PASS, strlen(DEFAULT_ESP_WIFI_PASS));
+		memcpy(g_sys_param.ble, DEFAULT_ESP_BLE_ID, strlen(DEFAULT_ESP_BLE_ID));
         g_sys_param.ssid_len = strlen(DEFAULT_ESP_WIFI_SSID);
         g_sys_param.password_len = strlen(DEFAULT_ESP_WIFI_PASS);
 

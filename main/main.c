@@ -81,7 +81,7 @@ void app_main(void)
 	elboni_spiffs_mount();
     app_network_start();
 	app_weather_start();
-	//elboni_ble_gatt_client();
+	elboni_ble_gatt_client();
 	
 	/* set LCD power reset */
 	esp_io_expander_set_dir(io_expander, IO_EXPANDER_PIN_NUM_5 | IO_EXPANDER_PIN_NUM_0 | IO_EXPANDER_PIN_NUM_2, IO_EXPANDER_OUTPUT);

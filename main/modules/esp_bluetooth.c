@@ -41,6 +41,7 @@
 #include "esp_gatt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_gatt_common_api.h"
+#include "modules.h"
 
 #define GATTC_DEBUG 1
 #define TAG "GATTC"
@@ -55,13 +56,20 @@
 #define PROFILE_NUM      1
 #define PROFILE_A_APP_ID 0
 #define INVALID_HANDLE   0
+#define MAX_BLE_DEVICE 	 10
 
+static struct remote_device remote_devices[MAX_BLE_DEVICE];
 
-static char remote_device_name[ESP_BLE_ADV_NAME_LEN_MAX] = "ESP_GATTS_DEMO";
+static char remote_device_name[ESP_BLE_ADV_NAME_LEN_MAX] = "NULL NAME";
 static bool connect    = false;
 static bool get_server = false;
+static bool scan_set_complete = false;
 static esp_gattc_char_elem_t *char_elem_result   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result = NULL;
+static int esp_ble_scan_number=0;
+static ble_scan_status_t scan_state = BLE_SCAN_IDLE;
+static ble_Connect_Status conn_state = BLE_STATUS_CONNECTED_FAILED;
+static SemaphoreHandle_t ble_mux;
 
 /* Declare static functions */
 static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
@@ -178,6 +186,7 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         if (mtu_ret){
             ESP_LOGE(TAG, "Config MTU error, error code = %x", mtu_ret);
         }
+		conn_state = BLE_STATUS_CONNECTED_OK;
         break;
     }
     case ESP_GATTC_OPEN_EVT:
@@ -185,6 +194,7 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             ESP_LOGE(TAG, "Open failed, status %d", p_data->open.status);
             break;
         }
+		conn_state = BLE_STATUS_CONNECTING;
         ELBONI_DBG_PRINT_GATTC(TAG, "Open successfully, MTU %u", p_data->open.mtu);
         break;
     case ESP_GATTC_DIS_SRVC_CMPL_EVT:
@@ -377,7 +387,8 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         get_server = false;
         ELBONI_DBG_PRINT_GATTC(TAG, "Disconnected, remote "ESP_BD_ADDR_STR", reason 0x%02x",
                  ESP_BD_ADDR_HEX(p_data->disconnect.remote_bda), p_data->disconnect.reason);
-        break;
+        conn_state = BLE_STATUS_CONNECTED_FAILED;
+		break;
     default:
         break;
     }
@@ -390,10 +401,12 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
     switch (event) {
     case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT: {
         //the unit of the duration is second
-        uint32_t duration = 30;
-        esp_ble_gap_start_scanning(duration);
+		//uint32_t duration = 30;
+		scan_set_complete = true;
+        //esp_ble_gap_start_scanning(duration);
+		ELBONI_DBG_PRINT_GATTC(TAG, "ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT");
         break;
-    }
+		}
     case ESP_GAP_BLE_SCAN_START_COMPLETE_EVT:
         //scan start complete event to indicate scan start successfully or failed
         if (param->scan_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
@@ -401,7 +414,6 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             break;
         }
         ELBONI_DBG_PRINT_GATTC(TAG, "Scanning start successfully");
-
         break;
     case ESP_GAP_BLE_SCAN_RESULT_EVT: {
         esp_ble_gap_cb_param_t *scan_result = (esp_ble_gap_cb_param_t *)param;
@@ -414,6 +426,17 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             ELBONI_DBG_PRINT_GATTC(TAG, "Scan result, device "ESP_BD_ADDR_STR", name len %u", ESP_BD_ADDR_HEX(scan_result->scan_rst.bda), adv_name_len);
             ESP_LOG_BUFFER_CHAR(TAG, adv_name, adv_name_len);
 
+			if(MAX_BLE_DEVICE > esp_ble_scan_number) {
+				scan_state = BLE_SCAN_RENEW;
+				memcpy(&(remote_devices[esp_ble_scan_number].scan_result), scan_result, sizeof(esp_ble_gap_cb_param_t));
+				memcpy(remote_devices[esp_ble_scan_number].name, adv_name, adv_name_len);
+				remote_devices[esp_ble_scan_number].name_len = adv_name_len;
+				esp_ble_scan_number+=1;
+			}
+			else
+			{
+				scan_state = BLE_SCAN_UPDATE;
+			}
 #if CONFIG_EXAMPLE_DUMP_ADV_DATA_AND_SCAN_RESP
             if (scan_result->scan_rst.adv_data_len > 0) {
                 ELBONI_DBG_PRINT_GATTC(TAG, "adv data:");
@@ -424,8 +447,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                 ESP_LOG_BUFFER_HEX(TAG, &scan_result->scan_rst.ble_adv[scan_result->scan_rst.adv_data_len], scan_result->scan_rst.scan_rsp_len);
             }
 #endif
-
-            if (adv_name != NULL) {
+			if (adv_name != NULL) {
                 if (strlen(remote_device_name) == adv_name_len && strncmp((char *)adv_name, remote_device_name, adv_name_len) == 0) {
                     // Note: If there are multiple devices with the same device name, the device may connect to an unintended one.
                     // It is recommended to change the default device name to ensure it is unique.
@@ -580,5 +602,122 @@ void elboni_ble_gatt_client(void)
     if (local_mtu_ret){
         ESP_LOGE(TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
+	ble_mux = xSemaphoreCreateRecursiveMutex();
+	ESP_ERROR_CHECK_WITHOUT_ABORT((ble_mux) ? ESP_OK : ESP_FAIL);
+}
 
+void elboni_ble_gatt_scan(int timeout)
+{
+	uint32_t duration = (uint32_t)timeout; //30
+	if(scan_set_complete)
+	{
+		memset(remote_devices, 0, sizeof(struct remote_device)*MAX_BLE_DEVICE);
+		esp_ble_scan_number=0;
+        esp_ble_gap_start_scanning(duration);
+		scan_state = BLE_SCAN_BUSY;
+	}else{
+		ELBONI_DBG_PRINT_GATTC(TAG, "wait for ble init complete, PLS try later");
+	}
+}
+
+void elboni_ble_gatt_connect(struct remote_device *device)
+{
+    if (device == NULL) {
+		ELBONI_DBG_PRINT_GATTC(TAG, "Device NULL");
+		return;
+	}
+	
+	ELBONI_DBG_PRINT_GATTC(TAG, "connect "ESP_BD_ADDR_STR"", ESP_BD_ADDR_HEX(device->scan_result.scan_rst.bda));
+	if (strncmp(device->name, remote_device_name, device->name_len) != 0)
+	{
+		if(connect == true) {
+			esp_ble_gap_disconnect(gl_profile_tab[PROFILE_A_APP_ID].remote_bda);
+		}
+		
+		connect = true;
+		ELBONI_DBG_PRINT_GATTC(TAG, "Connect to the remote device");
+		esp_ble_gap_stop_scanning();
+		scan_state = BLE_SCAN_IDLE;
+		esp_ble_gatt_creat_conn_params_t creat_conn_params = {0};
+		memcpy(&creat_conn_params.remote_bda, device->scan_result.scan_rst.bda, ESP_BD_ADDR_LEN);
+		creat_conn_params.remote_addr_type = device->scan_result.scan_rst.ble_addr_type;
+		creat_conn_params.own_addr_type = BLE_ADDR_TYPE_PUBLIC;
+		creat_conn_params.is_direct = true;
+		creat_conn_params.is_aux = false;
+		creat_conn_params.phy_mask = 0x0;
+		esp_ble_gattc_enh_open(gl_profile_tab[PROFILE_A_APP_ID].gattc_if,
+                       &creat_conn_params);
+		strcpy(remote_device_name, device->name);
+	}
+}
+
+esp_err_t elboni_ble_disable(void)
+{
+	esp_err_t err;
+    ESP_LOGD(TAG, "Free mem at start of simple_ble_stop %" PRIu32, esp_get_free_heap_size());
+    err = esp_bluedroid_disable();
+    if (err != ESP_OK) {
+        return ESP_FAIL;
+    }
+    ESP_LOGD(TAG, "esp_bluedroid_disable called successfully");
+    err = esp_bluedroid_deinit();
+    if (err != ESP_OK) {
+        return err;
+    }
+    ESP_LOGD(TAG, "esp_bluedroid_deinit called successfully");
+
+    err = esp_bt_controller_disable();
+    if (err != ESP_OK) {
+        return ESP_FAIL;
+    }
+
+    /* The API `esp_bt_controller_deinit` will have to be removed when we add support for
+     * `reset to provisioning`
+     */
+    ESP_LOGD(TAG, "esp_bt_controller_disable called successfully");
+    err = esp_bt_controller_deinit();
+    if (err != ESP_OK) {
+        return ESP_FAIL;
+    }
+    ESP_LOGD(TAG, "esp_bt_controller_deinit called successfully");
+
+    ESP_LOGD(TAG, "Free mem at end of simple_ble_stop %" PRIu32, esp_get_free_heap_size());
+    if(ble_mux)
+		vSemaphoreDelete(ble_mux);
+	
+	return ESP_OK;
+}
+
+struct remote_device *elboni_ble_get_scan_result(int i)
+{
+	return &remote_devices[i];
+}
+
+ble_scan_status_t elboni_ble_scan_state(void)
+{
+	return scan_state;
+}
+
+ble_Connect_Status elboni_ble_connect_state(void)
+{
+	return conn_state;
+}
+
+int elboni_ble_scan_count(void)
+{
+	return esp_ble_scan_number;
+}
+
+bool app_ble_lock(uint32_t timeout_ms)
+{
+    //assert(ble_mux && "bsp_display_start must be called first");
+
+    const TickType_t timeout_ticks = (timeout_ms == 0) ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms);
+    return xSemaphoreTakeRecursive(ble_mux, timeout_ticks) == pdTRUE;
+}
+
+void app_ble_unlock(void)
+{
+    //assert(ble_mux && "bsp_display_start must be called first");
+    xSemaphoreGiveRecursive(ble_mux);
 }
